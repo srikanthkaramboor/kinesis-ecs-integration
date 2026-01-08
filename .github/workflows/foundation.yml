@@ -1,0 +1,48 @@
+name: Deploy Foundation (CDK)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "infra/lib/foundation/**"
+      - "infra/bin/**"
+      - "infra/cdk.json"
+      - "infra/package.json"
+      - "infra/tsconfig.json"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-foundation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::949967577049:role/ecs-kinesis-role
+          aws-region: us-east-1
+
+      - name: Install CDK dependencies
+        working-directory: infra
+        run: npm install
+
+      - name: CDK Bootstrap (safe to run multiple times)
+        working-directory: infra
+        run: npx cdk bootstrap
+
+      - name: Deploy Foundation stacks
+        working-directory: infra
+        run: |
+          npx cdk deploy Foundation-* --require-approval never

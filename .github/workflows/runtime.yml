@@ -1,0 +1,50 @@
+name: Build & Push Docker Image to ECR
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - "docker/**"
+      - ".github/workflows/app-ci.yml"
+
+# 🔑 REQUIRED for GitHub → AWS OIDC
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Checkout source code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Assume AWS IAM Role using OIDC
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::949967577049:role/ecs-kinesis-role
+          aws-region: us-east-1
+
+      # 3️⃣ Login to Amazon ECR
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 4️⃣ Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build \
+            -f docker/Dockerfile \
+            -t kinesis-consumer:latest .
+
+      # 5️⃣ Tag & Push Docker image to ECR
+      - name: Push Docker image to ECR
+        run: |
+          ECR_URI=<ACCOUNT_ID>.dkr.ecr.ap-south-1.amazonaws.com/kinesis-consumer
+
+          docker tag kinesis-consumer:latest $ECR_URI:latest
+          docker push $ECR_URI:latest
