@@ -1,0 +1,48 @@
+name: Auto Rollback Runtime
+
+on:
+  repository_dispatch:
+    types: [ecs-rollback]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  auto-rollback:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::949967577049:role/ecs-kinesis-role
+          aws-region: us-east-1
+
+      - name: Fetch last known good image
+        id: fetch
+        run: |
+          IMAGE_TAG=$(aws ssm get-parameter \
+            --name "/kinesis-consumer/last-known-good-image" \
+            --query "Parameter.Value" \
+            --output text)
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Install CDK dependencies
+        working-directory: infra
+        run: npm install
+
+      - name: Rollback ECS
+        working-directory: infra
+        env:
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+        run: |
+          npx cdk deploy Runtime-EcsStack --require-approval never

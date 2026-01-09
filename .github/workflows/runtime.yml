@@ -72,3 +72,12 @@ jobs:
           IMAGE_TAG: ${{ env.IMAGE_TAG }}
         run: |
           npx cdk deploy Runtime-EcsStack --require-approval never
+      
+      - name: Record last known good image
+        if: success()
+        run: |
+          aws ssm put-parameter \
+            --name "/kinesis-consumer/last-known-good-image" \
+            --value "${{ env.IMAGE_TAG }}" \
+            --type String \
+            --overwrite

@@ -5,6 +5,10 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as ecr from "aws-cdk-lib/aws-ecr";
 import * as iam from "aws-cdk-lib/aws-iam";
+import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
+import * as cw_actions from "aws-cdk-lib/aws-cloudwatch-actions";
+import * as events from "aws-cdk-lib/aws-events";
+import * as targets from "aws-cdk-lib/aws-events-targets";
 
 interface EcsStackProps extends cdk.StackProps {
   repository: ecr.Repository;
@@ -28,6 +32,33 @@ export class EcsStack extends cdk.Stack {
       cpu: 256,
       memoryLimitMiB: 512,
       taskRole: props.taskRole,
+    });
+
+    const service = new ecs.FargateService(this, "Service", {
+    cluster,
+    taskDefinition: taskDef,
+    desiredCount: 1,
+    });
+
+    const runningTaskMetric = new cloudwatch.Metric({
+    namespace: "AWS/ECS",
+    metricName: "RunningTaskCount",
+    dimensionsMap: {
+        ClusterName: cluster.clusterName,
+        ServiceName: service.serviceName,
+    },
+    statistic: "Average",
+    period: cdk.Duration.minutes(1),
+    });
+
+    const unhealthyAlarm = new cloudwatch.Alarm(this, "EcsServiceUnhealthy", {
+    metric: runningTaskMetric,
+    threshold: 1,
+    evaluationPeriods: 3,
+    comparisonOperator:
+        cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+    alarmDescription:
+        "ECS service has zero running tasks",
     });
 
     taskDef.addContainer("ConsumerContainer", {
