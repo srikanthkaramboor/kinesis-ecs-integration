@@ -4,6 +4,7 @@ import { KinesisStack } from "../lib/foundation/kinesis-stack";
 import { S3Stack } from "../lib/foundation/s3-stack";
 import { IamStack } from "../lib/foundation/iam-stack";
 import { EcsStack } from "../lib/runtime/ecs-stack";
+import { SsmStack } from "../lib/foundation/ssm-stack";
 
 const imageTag = process.env.IMAGE_TAG ?? "latest";
 const app = new cdk.App();
@@ -13,6 +14,7 @@ const ecr = new EcrStack(app, "Foundation-EcrStack");
 const kinesis = new KinesisStack(app, "Foundation-KinesisStack");
 const s3 = new S3Stack(app, "Foundation-S3Stack");
 const iam = new IamStack(app, "Foundation-IamStack");
+const ssm = new SsmStack(app, "Foundation-SsmStack");
 
 // -------- RUNTIME --------
 new EcsStack(app, "Runtime-EcsStack", {
