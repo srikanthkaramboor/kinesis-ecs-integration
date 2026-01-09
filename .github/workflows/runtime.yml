@@ -18,6 +18,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -41,11 +47,6 @@ jobs:
 
           docker push \
             949967577049.dkr.ecr.us-east-1.amazonaws.com/kinesis-consumer:latest
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
       
       - name: Clean install CDK dependencies
         working-directory: infra
