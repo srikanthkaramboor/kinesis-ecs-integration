@@ -1,3 +1,4 @@
+#this is an obsolete code
 from processor import process_records
 
 def main():
