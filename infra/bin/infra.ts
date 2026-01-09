@@ -5,6 +5,7 @@ import { S3Stack } from "../lib/foundation/s3-stack";
 import { IamStack } from "../lib/foundation/iam-stack";
 import { EcsStack } from "../lib/runtime/ecs-stack";
 
+const imageTag = process.env.IMAGE_TAG ?? "latest";
 const app = new cdk.App();
 
 // -------- FOUNDATION --------
@@ -16,6 +17,7 @@ const iam = new IamStack(app, "Foundation-IamStack");
 // -------- RUNTIME --------
 new EcsStack(app, "Runtime-EcsStack", {
   repository: ecr.repository,
+  imageTag,
   streamName: kinesis.stream.streamName,
   bucketName: s3.bucket.bucketName,
   taskRole: iam.taskRole,

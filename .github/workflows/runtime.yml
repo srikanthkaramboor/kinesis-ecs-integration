@@ -35,18 +35,26 @@ jobs:
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
+      
+      # ----------------------------
+      # CREATE IMAGE TAG (Git SHA)
+      # ----------------------------
+      - name: Compute image tag
+        id: vars
+        run: |
+          echo "IMAGE_TAG=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
       - name: Build Docker image
         run: |
-          docker build -f docker/Dockerfile -t kinesis-consumer .
+          docker build -f docker/Dockerfile -t kinesis-consumer:${{ env.IMAGE_TAG }} .
 
       - name: Tag & push Docker image to ECR
         run: |
-          docker tag kinesis-consumer:latest \
-            949967577049.dkr.ecr.us-east-1.amazonaws.com/kinesis-consumer:latest
+          docker tag kinesis-consumer:${{ env.IMAGE_TAG }} \
+            949967577049.dkr.ecr.us-east-1.amazonaws.com/kinesis-consumer:${{ env.IMAGE_TAG }}
 
           docker push \
-            949967577049.dkr.ecr.us-east-1.amazonaws.com/kinesis-consumer:latest
+            949967577049.dkr.ecr.us-east-1.amazonaws.com/kinesis-consumer:${{ env.IMAGE_TAG }}
       
       - name: Clean install CDK dependencies
         working-directory: infra
@@ -60,5 +68,7 @@ jobs:
 
       - name: Deploy Runtime stack (ECS)
         working-directory: infra
+        env:
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
         run: |
           npx cdk deploy Runtime-EcsStack --require-approval never

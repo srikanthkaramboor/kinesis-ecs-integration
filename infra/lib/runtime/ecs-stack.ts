@@ -8,6 +8,7 @@ import * as iam from "aws-cdk-lib/aws-iam";
 
 interface EcsStackProps extends cdk.StackProps {
   repository: ecr.Repository;
+  imageTag: string; 
   streamName: string;
   bucketName: string;
   taskRole: iam.Role;
@@ -30,15 +31,15 @@ export class EcsStack extends cdk.Stack {
     });
 
     taskDef.addContainer("ConsumerContainer", {
-      image: ecs.ContainerImage.fromEcrRepository(props.repository),
-      logging: ecs.LogDrivers.awsLogs({
-        logGroup,
-        streamPrefix: "kinesis-consumer",
-      }),
+      //image: ecs.ContainerImage.fromEcrRepository(props.repository),
+      image: ecs.ContainerImage.fromEcrRepository(props.repository, props.imageTag),
+      logging: ecs.LogDrivers.awsLogs({logGroup,streamPrefix: "kinesis-consumer",}),
       environment: {
         KINESIS_STREAM: props.streamName,
         OUTPUT_BUCKET: props.bucketName,
         AWS_REGION: this.region,
+        APP_VERSION:props.imageTag,
+        // DEPLOYMENT_ID: new Date().toISOString(),
       },
     });
 
