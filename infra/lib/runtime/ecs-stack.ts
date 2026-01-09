@@ -74,10 +74,10 @@ export class EcsStack extends cdk.Stack {
       },
     });
 
-    new ecs.FargateService(this, "Service", {
-      cluster,
-      taskDefinition: taskDef,
-      desiredCount: 1,
-    });
+    // new ecs.FargateService(this, "Service", {
+    //   cluster,
+    //   taskDefinition: taskDef,
+    //   desiredCount: 1,
+    // });
   }
 }
