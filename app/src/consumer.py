@@ -3,7 +3,6 @@ import json
 import os
 import time
 import signal
-import sys
 from collections import deque
 from datetime import datetime, timezone
 
@@ -63,32 +62,48 @@ def process_record(record):
 
     voltage = payload["metric"]["voltage"]
     amperage = payload["metric"]["amperage"]
-    event_ts = datetime.fromisoformat(payload["timestamp"]).timestamp()
+
+    event_ts = datetime.fromisoformat(
+        payload["timestamp"]
+    ).timestamp()
 
     if key not in windows:
         windows[key] = deque()
 
     window = windows[key]
 
-    # Add event
+    # Add new event
     window.append((event_ts, voltage, amperage))
 
-    # Prune window
+    # Remove events older than rolling window
     prune_old_events(window, event_ts)
 
-    # Compute rolling average
+    # Compute rolling averages
     count = len(window)
+
     avg_voltage = sum(v for _, v, _ in window) / count
     avg_amperage = sum(a for _, _, a in window) / count
+
+    # Window boundaries
+    window_start_ts = window[0][0]
+    window_end_ts = event_ts
 
     result = {
         "site": site,
         "device_id": device_id,
         "window_seconds": WINDOW_SECONDS,
         "event_count": count,
+
+        "window_start": datetime.fromtimestamp(
+            window_start_ts, tz=timezone.utc
+        ).isoformat(),
+
+        "window_end": datetime.fromtimestamp(
+            window_end_ts, tz=timezone.utc
+        ).isoformat(),
+
         "avg_voltage": round(avg_voltage, 2),
         "avg_amperage": round(avg_amperage, 2),
-        "window_end": datetime.fromtimestamp(event_ts, tz=timezone.utc).isoformat()
     }
 
     return result
@@ -117,10 +132,9 @@ def write_to_s3(result):
 def main():
     print("Kinesis consumer started", flush=True)
 
-    # One shard per task (intentional)
-    shard_id = kinesis.describe_stream(StreamName=STREAM_NAME)[
-        "StreamDescription"
-    ]["Shards"][0]["ShardId"]
+    shard_id = kinesis.describe_stream(
+        StreamName=STREAM_NAME
+    )["StreamDescription"]["Shards"][0]["ShardId"]
 
     shard_iterator = kinesis.get_shard_iterator(
         StreamName=STREAM_NAME,
