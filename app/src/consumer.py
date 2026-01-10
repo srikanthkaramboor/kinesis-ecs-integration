@@ -104,6 +104,9 @@ def process_record(record):
 
         "avg_voltage": round(avg_voltage, 2),
         "avg_amperage": round(avg_amperage, 2),
+        "voltage" : round(voltage,2),
+        "amperage": round(amperage, 2)
+
     }
 
     return result
